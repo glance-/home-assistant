@@ -19,6 +19,7 @@ from homeassistant.const import (
     STATE_ON,
 )
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import extract_domain_configs
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.config_validation import make_entity_service_schema
 from homeassistant.helpers.entity import ToggleEntity
@@ -213,10 +214,10 @@ async def _async_process_config(hass, config, component):
             variables=service.data, context=service.context
         )
 
-    script_entities = [
-        ScriptEntity(hass, object_id, cfg)
-        for object_id, cfg in config.get(DOMAIN, {}).items()
-    ]
+    script_entities = []
+    for config_key in extract_domain_configs(config, DOMAIN):
+        for object_id, cfg in config[config_key].items():
+            script_entities.append(ScriptEntity(hass, object_id, cfg))
 
     await component.async_add_entities(script_entities)
 
