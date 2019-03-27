@@ -38,11 +38,11 @@ async def async_start(hass, password, server_config):
 
     passwd = tempfile.NamedTemporaryFile()
 
-    gen_server_config, client_config = generate_config(hass, passwd, password)
+    client_config = None
 
     try:
         if server_config is None:
-            server_config = gen_server_config
+            server_config, client_config = generate_config(hass, passwd, password)
 
         broker = Broker(server_config, hass.loop)
         await broker.start()
