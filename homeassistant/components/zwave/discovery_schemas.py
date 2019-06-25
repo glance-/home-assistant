@@ -185,6 +185,12 @@ DISCOVERY_SCHEMAS = [
                     ],
                     const.DISC_OPTIONAL: True,
                 },
+                'valve_state': {
+                    const.DISC_COMMAND_CLASS: [
+                        const.COMMAND_CLASS_SWITCH_MULTILEVEL
+                    ],
+                    const.DISC_OPTIONAL: True,
+                },
                 "zxt_120_swing_mode": {
                     const.DISC_COMMAND_CLASS: [const.COMMAND_CLASS_CONFIGURATION],
                     const.DISC_INDEX: [33],

@@ -48,6 +48,7 @@ ATTR_OPERATING_STATE = "operating_state"
 ATTR_FAN_STATE = "fan_state"
 ATTR_FAN_ACTION = "fan_action"
 AUX_HEAT_ZWAVE_MODE = "Aux Heat"
+ATTR_VALVE_STATE = "valve_state"
 
 # Device is in manufacturer specific mode (e.g. setting the valve manually)
 PRESET_MANUFACTURER_SPECIFIC = "Manufacturer Specific"
@@ -170,6 +171,7 @@ class ZWaveClimateBase(ZWaveDeviceEntity, ClimateEntity):
         self._current_fan_mode = None
         self._fan_modes = None
         self._fan_action = None
+        self._valve_state = None
         self._current_swing_mode = None
         self._swing_modes = None
         self._unit = temp_unit
@@ -386,6 +388,10 @@ class ZWaveClimateBase(ZWaveDeviceEntity, ClimateEntity):
         if self.values.fan_action:
             self._fan_action = self.values.fan_action.data
 
+        # Valve operating state
+        if self.values.valve_state:
+            self._valve_state = self.values.valve_state.data
+
     @property
     def fan_mode(self):
         """Return the fan speed set."""
@@ -576,6 +582,8 @@ class ZWaveClimateBase(ZWaveDeviceEntity, ClimateEntity):
         data = super().device_state_attributes
         if self._fan_action:
             data[ATTR_FAN_ACTION] = self._fan_action
+        if self._valve_state is not None:
+            data[ATTR_VALVE_STATE] = self._valve_state
         return data
 
 
