@@ -23,6 +23,7 @@ from homeassistant.components.climate.const import (
     PRESET_AWAY,
     PRESET_BOOST,
     PRESET_NONE,
+    PRESET_ECO,
     SUPPORT_AUX_HEAT,
     SUPPORT_FAN_MODE,
     SUPPORT_PRESET_MODE,
@@ -116,6 +117,7 @@ PRESET_MAPPINGS = {
     "away": PRESET_AWAY,
     "full power": PRESET_BOOST,
     "manufacturer specific": PRESET_MANUFACTURER_SPECIFIC,
+    "heat eco": PRESET_ECO,
 }
 
 DEFAULT_HVAC_MODES = [
