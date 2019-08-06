@@ -30,6 +30,7 @@ from homeassistant.components.climate.const import (
     SUPPORT_SWING_MODE,
     SUPPORT_TARGET_TEMPERATURE,
     SUPPORT_TARGET_TEMPERATURE_RANGE,
+    SUPPORT_TARGET_HUMIDITY,
 )
 from homeassistant.const import ATTR_TEMPERATURE, TEMP_CELSIUS, TEMP_FAHRENHEIT
 from homeassistant.core import callback
@@ -216,6 +217,12 @@ class ZWaveClimateBase(ZWaveDeviceEntity, ClimateEntity):
             support |= SUPPORT_AUX_HEAT
         if self._preset_list:
             support |= SUPPORT_PRESET_MODE
+        # TODO: Should probably be a workaround flag
+        # Check self.values.mode , it can be None
+        if self.values.valve_state and \
+                self.values.primary and \
+                self.values.primary.data == PRESET_MANUFACTURER_SPECIFIC:
+            support |= SUPPORT_TARGET_HUMIDITY
         return support
 
     def update_properties(self):
@@ -526,6 +533,16 @@ class ZWaveClimateBase(ZWaveDeviceEntity, ClimateEntity):
         if not self.values.fan_mode:
             return
         self.values.fan_mode.data = fan_mode
+
+    # TODO: Only based on flag...
+    @property
+    def current_humidity(self):
+        """Return the current humidity."""
+        return self._valve_state
+
+    def set_humidity(self, humidity):
+        """Set the humidity level."""
+        self.node.set_dimmer(self.values.primary.value_id, humidity)
 
     def set_hvac_mode(self, hvac_mode):
         """Set new target hvac mode."""
