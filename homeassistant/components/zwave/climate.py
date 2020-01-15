@@ -3,10 +3,20 @@
 import logging
 from typing import Optional, Tuple
 
+# TODO:
+# humidity: null
+# min_humidity: 30
+# max_humidity: 99
+
+# No action on slider movement
+
+
 from homeassistant.components.climate import ClimateEntity
 from homeassistant.components.climate.const import (
     ATTR_TARGET_TEMP_HIGH,
     ATTR_TARGET_TEMP_LOW,
+    ATTR_MIN_HUMIDITY,
+    ATTR_MAX_HUMIDITY,
     CURRENT_HVAC_COOL,
     CURRENT_HVAC_FAN,
     CURRENT_HVAC_HEAT,
@@ -46,6 +56,10 @@ DEFAULT_NAME = "Z-Wave Climate"
 REMOTEC = 0x5254
 REMOTEC_ZXT_120 = 0x8377
 REMOTEC_ZXT_120_THERMOSTAT = (REMOTEC, REMOTEC_ZXT_120)
+EUROtronic = 0x0148
+EUR_SPIRITZ_1 = 0x0001
+EUR_SPIRITZ_2 = 0x0002
+EUR_SPIRITZ_3 = 0x0003
 ATTR_OPERATING_STATE = "operating_state"
 ATTR_FAN_STATE = "fan_state"
 ATTR_FAN_ACTION = "fan_action"
@@ -56,8 +70,14 @@ ATTR_VALVE_STATE = "valve_state"
 PRESET_MANUFACTURER_SPECIFIC = "Manufacturer Specific"
 
 WORKAROUND_ZXT_120 = "zxt_120"
+SPIRITZ_VALVE_STATE = "spiritz_valve_state"
 
-DEVICE_MAPPINGS = {REMOTEC_ZXT_120_THERMOSTAT: WORKAROUND_ZXT_120}
+DEVICE_MAPPINGS = {
+    REMOTEC_ZXT_120_THERMOSTAT: WORKAROUND_ZXT_120,
+    (EUROtronic, EUR_SPIRITZ_1): SPIRITZ_VALVE_STATE,
+    (EUROtronic, EUR_SPIRITZ_2): SPIRITZ_VALVE_STATE,
+    (EUROtronic, EUR_SPIRITZ_3): SPIRITZ_VALVE_STATE,
+}
 
 HVAC_STATE_MAPPINGS = {
     "off": HVAC_MODE_OFF,
@@ -180,16 +200,21 @@ class ZWaveClimateBase(ZWaveDeviceEntity, ClimateEntity):
         self._unit = temp_unit
         _LOGGER.debug("temp_unit is %s", self._unit)
         self._zxt_120 = None
+        self._spiritz_valve_state = None
         # Make sure that we have values for the key before converting to int
         if self.node.manufacturer_id.strip() and self.node.product_id.strip():
             specific_sensor_key = (
                 int(self.node.manufacturer_id, 16),
                 int(self.node.product_id, 16),
             )
+            _LOGGER.debug("specific_sensor_key %s %s", specific_sensor_key)
             if specific_sensor_key in DEVICE_MAPPINGS:
                 if DEVICE_MAPPINGS[specific_sensor_key] == WORKAROUND_ZXT_120:
                     _LOGGER.debug("Remotec ZXT-120 Zwave Thermostat workaround")
                     self._zxt_120 = 1
+                if DEVICE_MAPPINGS[specific_sensor_key] == SPIRITZ_VALVE_STATE:
+                    _LOGGER.debug("Enable EUROtronic SPIRITZ valve state")
+                    self._spiritz_valve_state = 1
         self.update_properties()
 
     def _mode(self) -> None:
@@ -217,9 +242,8 @@ class ZWaveClimateBase(ZWaveDeviceEntity, ClimateEntity):
             support |= SUPPORT_AUX_HEAT
         if self._preset_list:
             support |= SUPPORT_PRESET_MODE
-        # TODO: Should probably be a workaround flag
-        # Check self.values.mode , it can be None
-        if self.values.valve_state and \
+        if self._spiritz_valve_state and \
+                self.values.valve_state and \
                 self.values.primary and \
                 self.values.primary.data == PRESET_MANUFACTURER_SPECIFIC:
             support |= SUPPORT_TARGET_HUMIDITY
@@ -540,9 +564,15 @@ class ZWaveClimateBase(ZWaveDeviceEntity, ClimateEntity):
         """Return the current humidity."""
         return self._valve_state
 
+    # TODO: Only based on flag...
+    @property
+    def target_humidity(self):
+        """Return the current humidity."""
+        return self._valve_state
+
     def set_humidity(self, humidity):
         """Set the humidity level."""
-        self.node.set_dimmer(self.values.primary.value_id, humidity)
+        self.node.set_dimmer(self.values.valve_state.value_id, humidity)
 
     def set_hvac_mode(self, hvac_mode):
         """Set new target hvac mode."""
@@ -603,6 +633,12 @@ class ZWaveClimateBase(ZWaveDeviceEntity, ClimateEntity):
             data[ATTR_FAN_ACTION] = self._fan_action
         if self._valve_state is not None:
             data[ATTR_VALVE_STATE] = self._valve_state
+        if self._spiritz_valve_state and \
+                self.values.valve_state and \
+                self.values.primary and \
+                self.values.primary.data == PRESET_MANUFACTURER_SPECIFIC:
+            data[ATTR_MIN_HUMIDITY] = 0
+            data[ATTR_MAX_HUMIDITY] = 100
         return data
 
 
