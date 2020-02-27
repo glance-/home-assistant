@@ -115,7 +115,7 @@ class LovelaceStorage(LovelaceConfig):
         if self.hass.config.safe_mode:
             raise ConfigNotFound
 
-        if self._data is None:
+        if self._data is None or force:
             await self._load()
 
         config = self._data["config"]
